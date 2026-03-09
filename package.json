@@ -1,25 +1,13 @@
 {
-  "name": "barber-backend",
+  "name": "barber-frontend",
   "version": "1.0.0",
-  "description": "理容室予約管理システム バックエンド",
-  "main": "server.js",
-  "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
-  },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "express": "^4.18.2",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.3"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-scripts": "5.0.1"
   },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
-  },
-  "engines": {
-    "node": ">=18.0.0"
+  "scripts": {
+    "start": "react-scripts start",
+    "build": "react-scripts build"
   }
 }
-
-
