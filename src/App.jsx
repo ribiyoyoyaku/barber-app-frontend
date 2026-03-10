@@ -32,12 +32,6 @@ async function apiFetch(path, options = {}) {
 // ============================================================
 // CONSTANTS
 // ============================================================
-const STAFF = [
-  { id: "s1", name: "田中 一郎", color: "#f0a8a8" },
-  { id: "s2", name: "佐藤 次郎", color: "#a8c8f0" },
-  { id: "s3", name: "鈴木 三恵", color: "#b8e0c8" },
-];
-
 const today = new Date();
 const fmt = (d) => d.toISOString().split("T")[0];
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
@@ -149,10 +143,10 @@ function Modal({ title, onClose, children, wide }) {
 // ============================================================
 // BOOKING FORM
 // ============================================================
-function BookingForm({ booking, customers, services, onSave, onClose }) {
+function BookingForm({ booking, customers, services, staff, onSave, onClose }) {
   const [form, setForm] = useState(booking || {
     id: genId(), customerId: "", customerName: "",
-    staffId: STAFF[0]?.id || "", serviceId: services[0]?.id || "",
+    staffId: staff[0]?.id || "", serviceId: services[0]?.id || "",
     date: fmt(today), time: "10:00", slot: 0,
     status: "confirmed", price: services[0]?.price || 0, notes: "",
   });
@@ -194,7 +188,7 @@ function BookingForm({ booking, customers, services, onSave, onClose }) {
         <div>
           <label style={lbl}>担当スタッフ</label>
           <select style={inp} value={form.staffId} onChange={e => set("staffId", e.target.value)}>
-            {STAFF.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+            {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
         </div>
         <div>
@@ -271,7 +265,7 @@ function BookingChip({ booking, services, onClick }) {
 // ============================================================
 // CALENDAR TAB
 // ============================================================
-function CalendarTab({ bookings, setBookings, customers, services }) {
+function CalendarTab({ bookings, setBookings, customers, services, staff }) {
   const [currentDate, setCurrentDate] = useState(new Date(today));
   const [view, setView] = useState("week");
   const [modal, setModal] = useState(null);
@@ -377,9 +371,9 @@ function CalendarTab({ bookings, setBookings, customers, services }) {
 
       {view === "day" && (
         <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e4eaf4", background: "#fff" }}>
-          <div style={{ display: "grid", gridTemplateColumns: `52px repeat(${STAFF.length}, 1fr)`, minWidth: "480px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: `52px repeat(${staff.length}, 1fr)`, minWidth: "480px" }}>
             <div style={{ borderBottom: "2px solid #e4eaf4", background: "#f8fafd" }} />
-            {STAFF.map(s => (
+            {staff.map(s => (
               <div key={s.id} style={{ textAlign: "center", padding: "0.65rem 0.3rem", borderBottom: "2px solid #e4eaf4", borderLeft: "1px solid #e4eaf4", background: "#f8fafd" }}>
                 <span style={{ display: "inline-block", width: "10px", height: "10px", borderRadius: "50%", background: s.color, marginRight: "5px", verticalAlign: "middle" }} />
                 <span style={{ fontSize: "0.82rem", color: "#3d5a80", fontWeight: "600" }}>{s.name}</span>
@@ -388,7 +382,7 @@ function CalendarTab({ bookings, setBookings, customers, services }) {
             {HOURS.map(h => (
               <div key={h} style={{ display: "contents" }}>
                 <div style={{ padding: "0.4rem 0.5rem 0 0", textAlign: "right", color: "#b0bec8", fontSize: "0.68rem", borderBottom: "1px solid #f0f4f8", background: "#fafbfe" }}>{h}</div>
-                {STAFF.map(s => {
+                {staff.map(s => {
                   const allSlots = bookingsOn(fmt(currentDate)).filter(b => b.time === h && b.staffId === s.id);
                   const slot0 = allSlots.find(b => (b.slot ?? 0) === 0);
                   const slot1 = allSlots.find(b => b.slot === 1);
@@ -412,12 +406,12 @@ function CalendarTab({ bookings, setBookings, customers, services }) {
           <BookingForm
             booking={modal.booking || (modal.prefill ? {
               id: genId(), customerId: "", customerName: "",
-              staffId: modal.prefill.staffId || STAFF[0]?.id || "",
+              staffId: modal.prefill.staffId || staff[0]?.id || "",
               serviceId: services[0]?.id || "",
               status: "confirmed", price: services[0]?.price || 0, notes: "",
               ...modal.prefill,
             } : null)}
-            customers={customers} services={services}
+            customers={customers} services={services} staff={staff}
             onSave={saveBooking} onClose={() => setModal(null)}
           />
           {modal.booking && (
@@ -655,7 +649,7 @@ function CustomersTab({ customers, setCustomers, bookings, services }) {
 // ============================================================
 // SALES TAB
 // ============================================================
-function SalesTab({ bookings, services }) {
+function SalesTab({ bookings, services, staff }) {
   const [selectedMonth, setSelectedMonth] = useState(
     `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`
   );
@@ -702,7 +696,7 @@ function SalesTab({ bookings, services }) {
         </div>
         <div style={{ background: "#fff", border: "1.5px solid #e4eaf4", borderRadius: "12px", padding: "1.25rem" }}>
           <div style={{ color: "#8896aa", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: "600", marginBottom: "1rem" }}>スタッフ別売上（今月）</div>
-          {STAFF.map(s => <Bar key={s.id} label={s.name} value={staffRev[s.id] || 0} max={Math.max(...STAFF.map(x => staffRev[x.id] || 0), 1)} color={s.color} />)}
+          {staff.map(s => <Bar key={s.id} label={s.name} value={staffRev[s.id] || 0} max={Math.max(...staff.map(x => staffRev[x.id] || 0), 1)} color={s.color} />)}
         </div>
         <div style={{ background: "#fff", border: "1.5px solid #e4eaf4", borderRadius: "12px", padding: "1.25rem", gridColumn: "1 / -1" }}>
           <div style={{ color: "#8896aa", fontSize: "0.72rem", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: "600", marginBottom: "1rem" }}>メニュー別売上（今月）</div>
@@ -869,6 +863,148 @@ function MenuManagementTab({ services, setServices }) {
   );
 }
 
+
+// ============================================================
+// STAFF MANAGEMENT TAB
+// ============================================================
+const STAFF_COLORS = [
+  "#f0a8a8","#a8c8f0","#b8e0c8","#f5d5a8","#d5a8f5","#a8f5d5",
+  "#f5a8d5","#d5f5a8","#a8d5f5","#f5f5a8","#c8b8f0","#f0c8b8",
+];
+
+function StaffManagementTab({ staff, setStaff }) {
+  const [editing, setEditing] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(null);
+
+  const emptyStaff = () => ({
+    id: "st_" + Math.random().toString(36).slice(2, 9),
+    name: "", color: "#a8c8f0", sortOrder: staff.length,
+  });
+
+  const saveStaff = async (s) => {
+    if (!s.name.trim()) return alert("スタッフ名を入力してください");
+    setSaving(true);
+    try {
+      await apiFetch("/api/staff", { method: "POST", body: s });
+      setStaff(prev => {
+        const exists = prev.find(x => x.id === s.id);
+        return exists ? prev.map(x => x.id === s.id ? s : x) : [...prev, s];
+      });
+      setEditing(null);
+    } catch (e) { alert(e.message); }
+    finally { setSaving(false); }
+  };
+
+  const deleteStaff = async (id) => {
+    if (!confirm("このスタッフを削除しますか？\n※このスタッフが担当する既存の予約には影響しません")) return;
+    setDeleting(id);
+    try {
+      await apiFetch(`/api/staff/${id}`, { method: "DELETE" });
+      setStaff(prev => prev.filter(s => s.id !== id));
+      if (editing?.id === id) setEditing(null);
+    } catch (e) { alert(e.message); }
+    finally { setDeleting(null); }
+  };
+
+  const setEdit = (k, v) => setEditing(e => ({ ...e, [k]: v }));
+
+  return (
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: "1.5rem", alignItems: "start" }}>
+      {/* List */}
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+          <div style={{ color: "#3d5a80", fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: "700" }}>スタッフ一覧</div>
+          <button style={mkBtn("primary")} onClick={() => setEditing(emptyStaff())}>＋ スタッフ追加</button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {staff.map((s, i) => (
+            <div key={s.id} style={{ background: "#fff", border: `1.5px solid ${editing?.id === s.id ? "#6b9fd4" : "#e4eaf4"}`, borderRadius: "12px", padding: "0.9rem 1.1rem", display: "flex", alignItems: "center", gap: "1rem" }}>
+              <div style={{ width: "40px", height: "40px", borderRadius: "50%", background: s.color, flexShrink: 0, border: "2px solid rgba(0,0,0,0.08)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1rem", fontWeight: "700", color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.2)" }}>
+                {s.name.slice(0, 1)}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: "700", fontSize: "0.95rem", color: "#2d3748" }}>{s.name}</div>
+                <div style={{ fontSize: "0.75rem", color: "#8896aa", marginTop: "2px", display: "flex", alignItems: "center", gap: "6px" }}>
+                  <span style={{ display: "inline-block", width: "10px", height: "10px", borderRadius: "3px", background: s.color, border: "1px solid rgba(0,0,0,0.1)" }} />
+                  カレンダー表示色
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "0.4rem" }}>
+                <button style={mkBtn("ghost")} onClick={() => setEditing({ ...s })}>編集</button>
+                <button
+                  style={{ ...mkBtn("danger"), opacity: deleting === s.id ? 0.6 : 1 }}
+                  onClick={() => deleteStaff(s.id)}
+                  disabled={deleting === s.id}
+                >削除</button>
+              </div>
+            </div>
+          ))}
+          {staff.length === 0 && (
+            <div style={{ color: "#a0aec0", textAlign: "center", padding: "3rem", fontSize: "0.88rem" }}>
+              スタッフがいません。追加してください。
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Edit Form */}
+      <div>
+        {editing ? (
+          <div style={{ background: "#fff", border: "1.5px solid #e4eaf4", borderRadius: "12px", padding: "1.5rem", position: "sticky", top: "1.5rem" }}>
+            <div style={{ fontFamily: "var(--font-display)", color: "#3d5a80", fontWeight: "700", fontSize: "1rem", marginBottom: "1.25rem" }}>
+              {staff.find(s => s.id === editing.id) ? "スタッフを編集" : "新規スタッフ"}
+            </div>
+
+            {/* Preview */}
+            <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "0.75rem 1rem", background: editing.color + "33", borderRadius: "8px", marginBottom: "1.25rem" }}>
+              <div style={{ width: "42px", height: "42px", borderRadius: "50%", background: editing.color, border: "2px solid rgba(0,0,0,0.1)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.1rem", fontWeight: "700", color: "#fff", textShadow: "0 1px 2px rgba(0,0,0,0.2)", flexShrink: 0 }}>
+                {editing.name ? editing.name.slice(0, 1) : "?"}
+              </div>
+              <div style={{ fontWeight: "700", fontSize: "0.95rem", color: "#2d3748" }}>{editing.name || "スタッフ名"}</div>
+            </div>
+
+            <div style={{ marginBottom: "1rem" }}>
+              <label style={lbl}>スタッフ名</label>
+              <input style={inp} value={editing.name} onChange={e => setEdit("name", e.target.value)} placeholder="例: 山田 四郎" />
+            </div>
+
+            <div style={{ marginBottom: "1.25rem" }}>
+              <label style={lbl}>カレンダーの表示色</label>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "0.5rem" }}>
+                {STAFF_COLORS.map(c => (
+                  <div key={c} onClick={() => setEdit("color", c)}
+                    style={{ width: "26px", height: "26px", borderRadius: "50%", background: c, cursor: "pointer",
+                      border: editing.color === c ? "2.5px solid #4a8fd4" : "2px solid rgba(0,0,0,0.08)",
+                      transform: editing.color === c ? "scale(1.2)" : "scale(1)", transition: "all 0.1s" }} />
+                ))}
+                <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                  <input type="color" value={editing.color} onChange={e => setEdit("color", e.target.value)}
+                    style={{ width: "28px", height: "28px", padding: "1px", border: "1px solid #dde3ec", borderRadius: "50%", cursor: "pointer" }} title="カスタムカラー" />
+                  <span style={{ fontSize: "0.72rem", color: "#8896aa" }}>カスタム</span>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", gap: "0.6rem" }}>
+              <button style={{ ...mkBtn("ghost"), flex: 1 }} onClick={() => setEditing(null)}>キャンセル</button>
+              <button style={{ ...mkBtn("primary"), flex: 2, opacity: saving ? 0.7 : 1 }}
+                onClick={() => saveStaff(editing)} disabled={saving}>
+                {saving ? "保存中…" : "保存する"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ background: "#f8fafd", border: "1.5px dashed #c8d4e3", borderRadius: "12px", padding: "2rem", textAlign: "center", color: "#a0aec0", fontSize: "0.88rem" }}>
+            <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>👤</div>
+            左のスタッフを選んで編集するか<br />「＋ スタッフ追加」で新規作成
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ============================================================
 // APP ROOT
 // ============================================================
@@ -878,20 +1014,23 @@ export default function App() {
   const [bookings,  setBookings]  = useState([]);
   const [customers, setCustomers] = useState([]);
   const [services,  setServices]  = useState([]);
+  const [staff,     setStaff]     = useState([]);
   const [loading,   setLoading]   = useState(true);
   const [showChangePw, setShowChangePw] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      const [b, c, s] = await Promise.all([
+      const [b, c, s, st] = await Promise.all([
         apiFetch("/api/bookings"),
         apiFetch("/api/customers"),
         apiFetch("/api/services"),
+        apiFetch("/api/staff"),
       ]);
       setBookings(b || []);
       setCustomers(c || []);
       setServices(s || []);
+      setStaff(st || []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }, []);
@@ -933,6 +1072,7 @@ export default function App() {
             <NavTab id="customers" label="👤 顧客" />
             <NavTab id="sales"     label="💰 売上" />
             <NavTab id="menus"     label="✂ メニュー管理" />
+            <NavTab id="staffs"    label="👤 スタッフ管理" />
           </nav>
           <div style={{ marginLeft: "auto", display: "flex", gap: "0.75rem", alignItems: "center" }}>
             <button onClick={() => setShowChangePw(true)} style={{ padding: "0.35rem 0.9rem", background: "#f4f7fb", border: "1px solid #dde3ec", color: "#6b7c93", borderRadius: "8px", cursor: "pointer", fontSize: "0.78rem", fontWeight: "600" }}>🔑 PW変更</button>
@@ -955,10 +1095,11 @@ export default function App() {
             </div>
           ) : (
             <>
-              {tab === "calendar"  && <CalendarTab  bookings={bookings} setBookings={setBookings} customers={customers} services={services} />}
+              {tab === "calendar"  && <CalendarTab  bookings={bookings} setBookings={setBookings} customers={customers} services={services} staff={staff} />}
               {tab === "customers" && <CustomersTab customers={customers} setCustomers={setCustomers} bookings={bookings} services={services} />}
-              {tab === "sales"     && <SalesTab     bookings={bookings} services={services} />}
+              {tab === "sales"     && <SalesTab     bookings={bookings} services={services} staff={staff} />}
               {tab === "menus"     && <MenuManagementTab services={services} setServices={setServices} />}
+              {tab === "staffs"    && <StaffManagementTab staff={staff} setStaff={setStaff} />}
             </>
           )}
         </main>
