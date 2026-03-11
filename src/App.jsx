@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"; // v2
+import { useState, useEffect, useCallback } from "react";
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:3001";
 
@@ -232,6 +232,18 @@ function BookingChip({ booking, services, onClick }) {
 // ============================================================
 // CALENDAR TAB
 // ============================================================
+// 1時間 = PX_PER_HOUR px
+const PX_PER_HOUR = 60;
+const MIN_PER_PX = 60 / PX_PER_HOUR; // 1px = 何分か
+const START_HOUR = 9;
+const END_HOUR = 21;
+const TOTAL_HOURS = END_HOUR - START_HOUR;
+
+function timeToY(timeStr) {
+  const [h, m] = timeStr.split(":").map(Number);
+  return ((h - START_HOUR) + m / 60) * PX_PER_HOUR;
+}
+
 function CalendarTab({ bookings, setBookings, customers, services, staff }) {
   const [currentDate, setCurrentDate] = useState(new Date(today));
   const [view, setView] = useState("day");
@@ -264,9 +276,85 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
     } catch (e) { alert(e.message); }
   };
 
-  const EmptySlot = ({ onClick }) => (
-    <div onClick={onClick} style={{ flex: 1, borderRadius: "4px", border: "1.5px dashed #d0dae8", cursor: "pointer", minHeight: "36px" }} />
-  );
+  // 時間軸の目盛りラベル
+  const hourLabels = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => i + START_HOUR);
+
+  // 日ビュー：スタッフ列ごとに予約チップを絶対配置
+  const DayViewColumn = ({ staffMember }) => {
+    const dayBookings = bookingsOn(fmt(currentDate)).filter(b => b.staffId === staffMember.id);
+    const totalH = TOTAL_HOURS * PX_PER_HOUR;
+
+    const handleColumnClick = (e) => {
+      // クリック位置から時間を計算
+      const rect = e.currentTarget.getBoundingClientRect();
+      const y = e.clientY - rect.top;
+      const minutes = Math.round((y / PX_PER_HOUR) * 60 / 30) * 30; // 30分単位
+      const totalMinutes = START_HOUR * 60 + minutes;
+      const h = Math.floor(totalMinutes / 60);
+      const m = totalMinutes % 60;
+      if (h < START_HOUR || h >= END_HOUR) return;
+      const timeStr = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      setModal({ booking: null, prefill: { staffId: staffMember.id, date: fmt(currentDate), time: timeStr, slot: 0 } });
+    };
+
+    return (
+      <div style={{ position: "relative", height: `${totalH}px`, borderLeft: "1px solid #e4eaf4", cursor: "crosshair", background: "#fff" }}
+        onClick={handleColumnClick}>
+        {/* 水平グリッド線 */}
+        {hourLabels.map(h => (
+          <div key={h} style={{
+            position: "absolute", top: `${(h - START_HOUR) * PX_PER_HOUR}px`,
+            left: 0, right: 0, borderTop: "1px solid #f0f4f8", pointerEvents: "none",
+          }} />
+        ))}
+        {/* 30分線 */}
+        {Array.from({ length: TOTAL_HOURS }, (_, i) => (
+          <div key={i} style={{
+            position: "absolute", top: `${i * PX_PER_HOUR + PX_PER_HOUR / 2}px`,
+            left: 0, right: 0, borderTop: "1px dashed #f5f7fb", pointerEvents: "none",
+          }} />
+        ))}
+        {/* 予約チップ */}
+        {dayBookings.map(b => {
+          const sv = services.find(s => s.id === b.serviceId);
+          const duration = sv?.duration || 60;
+          const top = timeToY(b.time);
+          const height = Math.max((duration / 60) * PX_PER_HOUR - 2, 20);
+          const bg = sv?.color || "#e8f0fe";
+          // slot=1 の場合は右半分にずらす
+          const isSlot1 = (b.slot ?? 0) === 1;
+          return (
+            <div key={b.id}
+              onClick={e => { e.stopPropagation(); setModal({ booking: b }); }}
+              style={{
+                position: "absolute",
+                top: `${top + 1}px`,
+                left: isSlot1 ? "50%" : "1px",
+                width: isSlot1 ? "calc(50% - 2px)" : "calc(50% - 1px)",
+                height: `${height}px`,
+                background: bg,
+                borderRadius: "5px",
+                padding: "2px 5px",
+                cursor: "pointer",
+                overflow: "hidden",
+                boxShadow: "0 1px 4px rgba(80,100,140,0.12)",
+                border: `1px solid ${bg}`,
+                zIndex: 2,
+              }}>
+              <div style={{ fontWeight: "700", fontSize: "0.7rem", color: "#2d3748", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {b.time} {b.customerName || "—"}
+              </div>
+              {height > 30 && (
+                <div style={{ fontSize: "0.65rem", color: "#5a6a7e", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                  {sv?.name}{sv ? ` ${sv.duration}分` : ""}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   return (
     <div>
@@ -284,7 +372,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
         <span style={{ fontFamily: "var(--font-display)", fontSize: "0.95rem", color: "#3d5a80", fontWeight: "700", minWidth: "100px", textAlign: "center" }}>
           {view === "week"
             ? `${weekStart.getMonth() + 1}月`
-            : `${currentDate.getMonth() + 1}月${currentDate.getDate()}日`}
+            : `${currentDate.getMonth() + 1}月${currentDate.getDate()}日(${WEEKDAYS[currentDate.getDay()]})`}
         </span>
         <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate() + (view === "week" ? 7 : 1)); setCurrentDate(d); }}
           style={{ background: "#f0f4f8", border: "none", borderRadius: "8px", padding: "0.4rem 0.75rem", cursor: "pointer", fontSize: "1rem" }}>›</button>
@@ -293,67 +381,137 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
         <button onClick={() => setModal({ booking: null })} style={{ ...mkBtn("primary"), marginLeft: "auto", padding: "0.45rem 1rem", fontSize: "0.88rem" }}>＋ 予約</button>
       </div>
 
-      {/* Week View */}
+      {/* Week View（時間軸・メニュー長さで高さが変わる） */}
       {view === "week" && (
         <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e4eaf4", background: "#fff" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "44px repeat(7, 1fr)", minWidth: "500px" }}>
-            <div style={{ borderBottom: "2px solid #e4eaf4", background: "#f8fafd" }} />
+          {/* ヘッダー行（曜日・日付） */}
+          <div style={{ display: "flex", borderBottom: "2px solid #e4eaf4", background: "#f8fafd", position: "sticky", top: 0, zIndex: 10 }}>
+            <div style={{ width: "44px", flexShrink: 0 }} />
             {days.map(d => {
               const isToday = fmt(d) === fmt(today);
               return (
                 <div key={fmt(d)} onClick={() => { setCurrentDate(d); setView("day"); }}
-                  style={{ textAlign: "center", padding: "0.5rem 0.2rem", borderBottom: "2px solid #e4eaf4", borderLeft: "1px solid #e4eaf4", cursor: "pointer", background: isToday ? "#eef5ff" : "#f8fafd" }}>
+                  style={{ flex: 1, textAlign: "center", padding: "0.5rem 0.2rem", borderLeft: "1px solid #e4eaf4", cursor: "pointer", background: isToday ? "#eef5ff" : "#f8fafd", minWidth: "44px" }}>
                   <div style={{ fontSize: "0.62rem", color: "#8896aa", fontWeight: "600" }}>{WEEKDAYS[d.getDay()]}</div>
-                  <div style={{ fontSize: "1.05rem", fontFamily: "var(--font-display)", color: isToday ? "#4a8fd4" : "#3d5a80", fontWeight: isToday ? "700" : "400" }}>{d.getDate()}</div>
+                  <div style={{ fontSize: "1rem", fontFamily: "var(--font-display)", color: isToday ? "#4a8fd4" : "#3d5a80", fontWeight: isToday ? "700" : "400" }}>{d.getDate()}</div>
                   <div style={{ fontSize: "0.6rem", color: "#a0aec0" }}>{bookingsOn(fmt(d)).length}件</div>
                 </div>
               );
             })}
-            {HOURS.map(h => (
-              <div key={h} style={{ display: "contents" }}>
-                <div style={{ padding: "0.3rem 0.4rem 0 0", textAlign: "right", color: "#b0bec8", fontSize: "0.62rem", borderBottom: "1px solid #f0f4f8", background: "#fafbfe" }}>{h}</div>
-                {days.map(d => {
-                  const allSlots = bookingsOn(fmt(d)).filter(b => b.time === h);
-                  const slot0 = allSlots.find(b => (b.slot ?? 0) === 0);
-                  const slot1 = allSlots.find(b => b.slot === 1);
-                  return (
-                    <div key={fmt(d) + h} style={{ borderLeft: "1px solid #e4eaf4", borderBottom: "1px solid #f0f4f8", minHeight: "44px", padding: "2px", background: fmt(d) === fmt(today) ? "#fafcff" : "#fff", display: "flex", gap: "2px" }}>
-                      {slot0 ? <BookingChip booking={slot0} services={services} onClick={() => setModal({ booking: slot0 })} /> : <EmptySlot onClick={() => setModal({ booking: null, prefill: { date: fmt(d), time: h, slot: 0 } })} />}
-                      {slot1 ? <BookingChip booking={slot1} services={services} onClick={() => setModal({ booking: slot1 })} /> : <EmptySlot onClick={() => setModal({ booking: null, prefill: { date: fmt(d), time: h, slot: 1 } })} />}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+          </div>
+          {/* 時間軸本体 */}
+          <div style={{ display: "flex", minWidth: "500px" }}>
+            {/* 時間ラベル列 */}
+            <div style={{ width: "44px", flexShrink: 0, position: "relative", height: `${TOTAL_HOURS * PX_PER_HOUR}px`, background: "#fafbfe" }}>
+              {hourLabels.map(h => (
+                <div key={h} style={{
+                  position: "absolute", top: `${(h - START_HOUR) * PX_PER_HOUR - 7}px`,
+                  right: "4px", fontSize: "0.62rem", color: "#b0bec8", userSelect: "none",
+                }}>
+                  {`${String(h).padStart(2, "0")}:00`}
+                </div>
+              ))}
+            </div>
+            {/* 曜日ごとの列 */}
+            {days.map(d => {
+              const isToday = fmt(d) === fmt(today);
+              const dayBks = bookingsOn(fmt(d));
+              const totalH = TOTAL_HOURS * PX_PER_HOUR;
+              const handleColClick = (e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const y = e.clientY - rect.top;
+                const minutes = Math.round((y / PX_PER_HOUR) * 60 / 30) * 30;
+                const totalMinutes = START_HOUR * 60 + minutes;
+                const hh = Math.floor(totalMinutes / 60);
+                const mm = totalMinutes % 60;
+                if (hh < START_HOUR || hh >= END_HOUR) return;
+                const timeStr = `${String(hh).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+                setModal({ booking: null, prefill: { date: fmt(d), time: timeStr, slot: 0 } });
+              };
+              return (
+                <div key={fmt(d)} style={{ flex: 1, position: "relative", height: `${totalH}px`, borderLeft: "1px solid #e4eaf4", cursor: "crosshair", background: isToday ? "#fafcff" : "#fff", minWidth: "44px" }}
+                  onClick={handleColClick}>
+                  {/* グリッド線 */}
+                  {hourLabels.map(h => (
+                    <div key={h} style={{ position: "absolute", top: `${(h - START_HOUR) * PX_PER_HOUR}px`, left: 0, right: 0, borderTop: "1px solid #f0f4f8", pointerEvents: "none" }} />
+                  ))}
+                  {Array.from({ length: TOTAL_HOURS }, (_, i) => (
+                    <div key={i} style={{ position: "absolute", top: `${i * PX_PER_HOUR + PX_PER_HOUR / 2}px`, left: 0, right: 0, borderTop: "1px dashed #f5f7fb", pointerEvents: "none" }} />
+                  ))}
+                  {/* 予約チップ */}
+                  {dayBks.map(b => {
+                    const sv = services.find(s => s.id === b.serviceId);
+                    const duration = sv?.duration || 60;
+                    const top = timeToY(b.time);
+                    const height = Math.max((duration / 60) * PX_PER_HOUR - 2, 16);
+                    const bg = sv?.color || "#e8f0fe";
+                    const isSlot1 = (b.slot ?? 0) === 1;
+                    return (
+                      <div key={b.id}
+                        onClick={e => { e.stopPropagation(); setModal({ booking: b }); }}
+                        style={{
+                          position: "absolute",
+                          top: `${top + 1}px`,
+                          left: isSlot1 ? "50%" : "1px",
+                          width: isSlot1 ? "calc(50% - 2px)" : "calc(50% - 1px)",
+                          height: `${height}px`,
+                          background: bg,
+                          borderRadius: "4px",
+                          padding: "1px 3px",
+                          cursor: "pointer",
+                          overflow: "hidden",
+                          boxShadow: "0 1px 3px rgba(80,100,140,0.1)",
+                          border: `1px solid ${bg}`,
+                          zIndex: 2,
+                        }}>
+                        <div style={{ fontWeight: "700", fontSize: "0.62rem", color: "#2d3748", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {b.customerName || "—"}
+                        </div>
+                        {height > 24 && (
+                          <div style={{ fontSize: "0.58rem", color: "#5a6a7e", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {sv?.name}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Day View */}
+      {/* Day View（時間軸・メニュー長さで高さが変わる） */}
       {view === "day" && (
         <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e4eaf4", background: "#fff" }}>
-          <div style={{ display: "grid", gridTemplateColumns: `44px repeat(${Math.max(staff.length, 1)}, 1fr)`, minWidth: "320px" }}>
-            <div style={{ borderBottom: "2px solid #e4eaf4", background: "#f8fafd" }} />
+          {/* ヘッダー行（スタッフ名） */}
+          <div style={{ display: "flex", borderBottom: "2px solid #e4eaf4", background: "#f8fafd", position: "sticky", top: 0, zIndex: 10 }}>
+            <div style={{ width: "44px", flexShrink: 0 }} />
             {staff.map(s => (
-              <div key={s.id} style={{ textAlign: "center", padding: "0.6rem 0.2rem", borderBottom: "2px solid #e4eaf4", borderLeft: "1px solid #e4eaf4", background: "#f8fafd" }}>
+              <div key={s.id} style={{ flex: 1, textAlign: "center", padding: "0.6rem 0.2rem", borderLeft: "1px solid #e4eaf4" }}>
                 <span style={{ display: "inline-block", width: "8px", height: "8px", borderRadius: "50%", background: s.color, marginRight: "4px", verticalAlign: "middle" }} />
                 <span style={{ fontSize: "0.8rem", color: "#3d5a80", fontWeight: "600" }}>{s.name}</span>
               </div>
             ))}
-            {HOURS.map(h => (
-              <div key={h} style={{ display: "contents" }}>
-                <div style={{ padding: "0.3rem 0.4rem 0 0", textAlign: "right", color: "#b0bec8", fontSize: "0.62rem", borderBottom: "1px solid #f0f4f8", background: "#fafbfe" }}>{h}</div>
-                {staff.map(s => {
-                  const allSlots = bookingsOn(fmt(currentDate)).filter(b => b.time === h && b.staffId === s.id);
-                  const slot0 = allSlots.find(b => (b.slot ?? 0) === 0);
-                  const slot1 = allSlots.find(b => b.slot === 1);
-                  return (
-                    <div key={s.id + h} style={{ borderLeft: "1px solid #e4eaf4", borderBottom: "1px solid #f0f4f8", minHeight: "52px", padding: "2px", display: "flex", gap: "2px" }}>
-                      {slot0 ? <BookingChip booking={slot0} services={services} onClick={() => setModal({ booking: slot0 })} /> : <EmptySlot onClick={() => setModal({ booking: null, prefill: { staffId: s.id, date: fmt(currentDate), time: h, slot: 0 } })} />}
-                      {slot1 ? <BookingChip booking={slot1} services={services} onClick={() => setModal({ booking: slot1 })} /> : <EmptySlot onClick={() => setModal({ booking: null, prefill: { staffId: s.id, date: fmt(currentDate), time: h, slot: 1 } })} />}
-                    </div>
-                  );
-                })}
+          </div>
+          {/* 時間軸グリッド本体 */}
+          <div style={{ display: "flex" }}>
+            {/* 時間ラベル列 */}
+            <div style={{ width: "44px", flexShrink: 0, position: "relative", height: `${TOTAL_HOURS * PX_PER_HOUR}px`, background: "#fafbfe" }}>
+              {hourLabels.map(h => (
+                <div key={h} style={{
+                  position: "absolute", top: `${(h - START_HOUR) * PX_PER_HOUR - 7}px`,
+                  right: "4px", fontSize: "0.62rem", color: "#b0bec8", userSelect: "none",
+                }}>
+                  {`${String(h).padStart(2, "0")}:00`}
+                </div>
+              ))}
+            </div>
+            {/* スタッフごとの列 */}
+            {staff.map(s => (
+              <div key={s.id} style={{ flex: 1, minWidth: "80px" }}>
+                <DayViewColumn staffMember={s} />
               </div>
             ))}
           </div>
