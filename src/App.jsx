@@ -254,13 +254,26 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
       let finalBooking = { ...b };
       const isNew = !bookings.find(x => x.id === b.id);
       if (isNew) {
-        const same = bookings.filter(x =>
-          x.date === b.date &&
-          x.time === b.time &&
-          x.staffId === b.staffId &&
-          x.status !== "cancelled" &&
-          x.id !== b.id
-        );
+        // 時間が重なる予約を検出（開始〜終了が被るもの）
+        const toMinutes = (timeStr) => {
+          const [h, m] = timeStr.split(":").map(Number);
+          return h * 60 + m;
+        };
+        const newStart = toMinutes(b.time);
+        const newSv = services.find(s => s.id === b.serviceId);
+        const newEnd = newStart + (newSv?.duration || 60);
+
+        const same = bookings.filter(x => {
+          if (x.date !== b.date) return false;
+          if (x.staffId !== b.staffId) return false;
+          if (x.status === "cancelled") return false;
+          if (x.id === b.id) return false;
+          const xStart = toMinutes(x.time);
+          const xSv = services.find(s => s.id === x.serviceId);
+          const xEnd = xStart + (xSv?.duration || 60);
+          // 時間が少しでも重なれば対象
+          return newStart < xEnd && newEnd > xStart;
+        });
         const slot0Taken = same.some(x => (x.slot ?? 0) === 0);
         const slot1Taken = same.some(x => x.slot === 1);
         if (!slot0Taken) finalBooking.slot = 0;
