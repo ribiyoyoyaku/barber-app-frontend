@@ -406,9 +406,11 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
 
       {/* Week View（時間軸・メニュー長さで高さが変わる） */}
       {view === "week" && (
-        <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e4eaf4", background: "#fff" }}>
+        <div style={{ borderRadius: "12px", border: "1px solid #e4eaf4", background: "#fff", overflow: "hidden" }}>
+          {/* スクロールコンテナ（ヘッダーと本体を一緒にスクロール） */}
+          <div style={{ overflowX: "auto" }}>
           {/* ヘッダー行（曜日・日付） */}
-          <div style={{ display: "flex", borderBottom: "2px solid #e4eaf4", background: "#f8fafd", position: "sticky", top: 0, zIndex: 10, minWidth: "500px" }}>
+          <div style={{ display: "flex", borderBottom: "2px solid #e4eaf4", background: "#f8fafd", minWidth: "500px" }}>
             <div style={{ width: "44px", flexShrink: 0 }} />
             {days.map(d => {
               const isToday = fmt(d) === fmt(today);
@@ -502,6 +504,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
               );
             })}
           </div>
+          </div>{/* /overflowX scroll container */}
         </div>
       )}
 
