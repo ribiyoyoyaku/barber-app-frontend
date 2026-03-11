@@ -178,13 +178,6 @@ function BookingForm({ booking, customers, services, staff, onSave, onClose }) {
           </select>
         </div>
         <div>
-          <label style={lbl}>枠番号</label>
-          <select style={inp} value={form.slot} onChange={e => set("slot", parseInt(e.target.value))}>
-            <option value={0}>枠①</option>
-            <option value={1}>枠②</option>
-          </select>
-        </div>
-        <div>
           <label style={lbl}>料金 (¥)</label>
           <input type="number" style={inp} value={form.price} onChange={e => set("price", parseInt(e.target.value) || 0)} />
         </div>
@@ -257,10 +250,27 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
   const saveBooking = async (b) => {
     setSaving(true);
     try {
-      await apiFetch("/api/bookings", { method: "POST", body: b });
+      // 新規予約の場合、枠を自動割り当て
+      let finalBooking = { ...b };
+      const isNew = !bookings.find(x => x.id === b.id);
+      if (isNew) {
+        const same = bookings.filter(x =>
+          x.date === b.date &&
+          x.time === b.time &&
+          x.staffId === b.staffId &&
+          x.status !== "cancelled" &&
+          x.id !== b.id
+        );
+        const slot0Taken = same.some(x => (x.slot ?? 0) === 0);
+        const slot1Taken = same.some(x => x.slot === 1);
+        if (!slot0Taken) finalBooking.slot = 0;
+        else if (!slot1Taken) finalBooking.slot = 1;
+        else { alert("この時間帯はすでに満枠です"); setSaving(false); return; }
+      }
+      await apiFetch("/api/bookings", { method: "POST", body: finalBooking });
       setBookings(prev => {
-        const exists = prev.find(x => x.id === b.id);
-        return exists ? prev.map(x => x.id === b.id ? b : x) : [...prev, b];
+        const exists = prev.find(x => x.id === finalBooking.id);
+        return exists ? prev.map(x => x.id === finalBooking.id ? finalBooking : x) : [...prev, finalBooking];
       });
       setModal(null);
     } catch (e) { alert(e.message); }
