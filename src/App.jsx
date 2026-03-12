@@ -385,25 +385,111 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
       {/* Controls */}
       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
         <div style={{ display: "flex", gap: "0.25rem" }}>
-          {["day","week"].map(v => (
+          {["day","week","month"].map(v => (
             <button key={v} onClick={() => setView(v)} style={{ padding: "0.4rem 0.85rem", background: view === v ? "#6b9fd4" : "#f0f4f8", color: view === v ? "#fff" : "#6b7c93", border: "none", borderRadius: "7px", cursor: "pointer", fontSize: "0.83rem", fontWeight: "600" }}>
-              {v === "day" ? "日" : "週"}
+              {v === "day" ? "日" : v === "week" ? "週" : "月"}
             </button>
           ))}
         </div>
-        <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate() - (view === "week" ? 7 : 1)); setCurrentDate(d); }}
-          style={{ background: "#f0f4f8", border: "none", borderRadius: "8px", padding: "0.4rem 0.75rem", cursor: "pointer", fontSize: "1rem" }}>‹</button>
+        <button onClick={() => {
+          const d = new Date(currentDate);
+          if (view === "week") d.setDate(d.getDate() - 7);
+          else if (view === "month") d.setMonth(d.getMonth() - 1);
+          else d.setDate(d.getDate() - 1);
+          setCurrentDate(d);
+        }} style={{ background: "#f0f4f8", border: "none", borderRadius: "8px", padding: "0.4rem 0.75rem", cursor: "pointer", fontSize: "1rem" }}>‹</button>
         <span style={{ fontFamily: "var(--font-display)", fontSize: "0.95rem", color: "#3d5a80", fontWeight: "700", minWidth: "100px", textAlign: "center" }}>
-          {view === "week"
-            ? `${weekStart.getMonth() + 1}月`
+          {view === "month"
+            ? `${currentDate.getFullYear()}年${currentDate.getMonth() + 1}月`
+            : view === "week"
+            ? `${weekStart.getFullYear()}年${weekStart.getMonth() + 1}月`
             : `${currentDate.getMonth() + 1}月${currentDate.getDate()}日(${WEEKDAYS[currentDate.getDay()]})`}
         </span>
-        <button onClick={() => { const d = new Date(currentDate); d.setDate(d.getDate() + (view === "week" ? 7 : 1)); setCurrentDate(d); }}
-          style={{ background: "#f0f4f8", border: "none", borderRadius: "8px", padding: "0.4rem 0.75rem", cursor: "pointer", fontSize: "1rem" }}>›</button>
+        <button onClick={() => {
+          const d = new Date(currentDate);
+          if (view === "week") d.setDate(d.getDate() + 7);
+          else if (view === "month") d.setMonth(d.getMonth() + 1);
+          else d.setDate(d.getDate() + 1);
+          setCurrentDate(d);
+        }} style={{ background: "#f0f4f8", border: "none", borderRadius: "8px", padding: "0.4rem 0.75rem", cursor: "pointer", fontSize: "1rem" }}>›</button>
         <button onClick={() => setCurrentDate(new Date(today))}
           style={{ padding: "0.4rem 0.75rem", background: "none", border: "1px solid #c8d4e3", color: "#6b7c93", borderRadius: "7px", cursor: "pointer", fontSize: "0.78rem" }}>今日</button>
         <button onClick={() => setModal({ booking: null })} style={{ ...mkBtn("primary"), marginLeft: "auto", padding: "0.45rem 1rem", fontSize: "0.88rem" }}>＋ 予約</button>
       </div>
+
+      {/* Month View */}
+      {view === "month" && (() => {
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        // カレンダー表示用の日付配列（前月・次月の端数含む）
+        const startDow = firstDay.getDay(); // 0=日
+        const totalCells = Math.ceil((startDow + lastDay.getDate()) / 7) * 7;
+        const cells = Array.from({ length: totalCells }, (_, i) => {
+          const d = new Date(year, month, 1 - startDow + i);
+          return d;
+        });
+        const weeks = [];
+        for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+
+        return (
+          <div style={{ borderRadius: "12px", border: "1px solid #e4eaf4", background: "#fff", overflow: "hidden" }}>
+            {/* 曜日ヘッダー */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "2px solid #e4eaf4", background: "#f8fafd" }}>
+              {WEEKDAYS.map((w, i) => (
+                <div key={w} style={{ textAlign: "center", padding: "0.45rem 0", fontSize: "0.72rem", fontWeight: "700", color: i === 0 ? "#e57373" : i === 6 ? "#64b5f6" : "#8896aa" }}>{w}</div>
+              ))}
+            </div>
+            {/* 週ごとの行 */}
+            {weeks.map((week, wi) => (
+              <div key={wi} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: wi < weeks.length - 1 ? "1px solid #f0f4f8" : "none" }}>
+                {week.map((d, di) => {
+                  const isCurrentMonth = d.getMonth() === month;
+                  const isToday = fmt(d) === fmt(today);
+                  const dayBks = bookingsOn(fmt(d));
+                  return (
+                    <div key={fmt(d)}
+                      onClick={() => { setCurrentDate(d); setView("day"); }}
+                      style={{
+                        minHeight: "72px", padding: "4px", cursor: "pointer",
+                        borderLeft: di > 0 ? "1px solid #f0f4f8" : "none",
+                        background: isToday ? "#eef5ff" : !isCurrentMonth ? "#fafbfd" : "#fff",
+                        position: "relative",
+                      }}>
+                      {/* 日付 */}
+                      <div style={{
+                        fontSize: "0.78rem", fontWeight: isToday ? "700" : "400",
+                        color: isToday ? "#fff" : !isCurrentMonth ? "#c8d4e3" : di === 0 ? "#e57373" : di === 6 ? "#64b5f6" : "#3d5a80",
+                        width: "22px", height: "22px", borderRadius: "50%",
+                        background: isToday ? "#4a8fd4" : "none",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        marginBottom: "2px",
+                      }}>{d.getDate()}</div>
+                      {/* 予約チップ（最大3件表示） */}
+                      {dayBks.slice(0, 3).map(b => {
+                        const sv = services.find(s => s.id === b.serviceId);
+                        const bg = sv?.color || "#e8f0fe";
+                        return (
+                          <div key={b.id}
+                            onClick={e => { e.stopPropagation(); setModal({ booking: b }); }}
+                            style={{ background: bg, borderRadius: "3px", padding: "1px 4px", fontSize: "0.62rem", color: "#2d3748", fontWeight: "600", marginBottom: "1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }}>
+                            {b.time} {b.customerName || "—"}
+                          </div>
+                        );
+                      })}
+                      {/* 4件以上は「+n件」 */}
+                      {dayBks.length > 3 && (
+                        <div style={{ fontSize: "0.6rem", color: "#6b9fd4", fontWeight: "600", paddingLeft: "2px" }}>+{dayBks.length - 3}件</div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        );
+      })()}
 
       {/* Week View（時間軸・メニュー長さで高さが変わる） */}
       {view === "week" && (
