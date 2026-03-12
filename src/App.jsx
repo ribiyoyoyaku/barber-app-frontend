@@ -95,10 +95,11 @@ function LoginScreen({ onLogin }) {
 // MODAL
 // ============================================================
 function Modal({ title, onClose, children }) {
+  const isWide = typeof window !== "undefined" && window.innerWidth >= 640;
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(60,80,100,0.45)", zIndex: 1000, display: "flex", alignItems: "flex-end", justifyContent: "center", padding: "0" }}
+    <div style={{ position: "fixed", inset: 0, background: "rgba(60,80,100,0.45)", zIndex: 1000, display: "flex", alignItems: isWide ? "center" : "flex-end", justifyContent: "center", padding: isWide ? "1rem" : "0" }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background: "#fff", borderRadius: "20px 20px 0 0", width: "100%", maxWidth: "600px", maxHeight: "92vh", overflowY: "auto", boxShadow: "0 -8px 32px rgba(80,100,140,0.18)" }}>
+      <div style={{ background: "#fff", borderRadius: isWide ? "16px" : "20px 20px 0 0", width: "100%", maxWidth: "600px", maxHeight: isWide ? "88vh" : "92vh", overflowY: "auto", boxShadow: isWide ? "0 8px 40px rgba(80,100,140,0.22)" : "0 -8px 32px rgba(80,100,140,0.18)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "1.1rem 1.25rem", borderBottom: "1px solid #eef1f6", position: "sticky", top: 0, background: "#fff", zIndex: 1 }}>
           <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", color: "#3d5a80", fontWeight: "700" }}>{title}</span>
           <button onClick={onClose} style={{ background: "#f0f4f8", border: "none", color: "#8896aa", fontSize: "1.1rem", cursor: "pointer", borderRadius: "50%", width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
