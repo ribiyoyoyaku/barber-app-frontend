@@ -78,7 +78,7 @@ function LoginScreen({ onLogin }) {
     <div style={{ minHeight: "100vh", background: "#f4f7fb", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
       <div style={{ background: "#fff", borderRadius: "16px", padding: "2.5rem 2rem", width: "100%", maxWidth: "360px", boxShadow: "0 8px 32px rgba(80,100,140,0.12)", textAlign: "center" }}>
         <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>✂</div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", color: "#3d5a80", marginBottom: "0.3rem" }}>理容管理システム</h1>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", color: "#3d5a80", marginBottom: "0.3rem" }}>feel専用理容管理システム</h1>
         <p style={{ color: "#8896aa", fontSize: "0.83rem", marginBottom: "2rem" }}>パスワードを入力してください</p>
         <input type="password" style={{ ...inp, textAlign: "center", fontSize: "1.1rem", letterSpacing: "0.15em", marginBottom: "1rem" }}
           placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
@@ -1116,7 +1116,7 @@ export default function App() {
       <div style={{ minHeight: "100vh", background: "#f4f7fb", paddingBottom: "70px" }}>
         {/* Header */}
         <header style={{ background: "#fff", borderBottom: "1px solid #e4eaf4", padding: "0 1rem", display: "flex", alignItems: "center", height: "52px", gap: "0.75rem", boxShadow: "0 1px 6px rgba(80,100,140,0.07)", position: "sticky", top: 0, zIndex: 100 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "#3d5a80", fontWeight: "700", whiteSpace: "nowrap" }}>✂ 理容管理</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "#3d5a80", fontWeight: "700", whiteSpace: "nowrap" }}>✂ feel専用理容管理</div>
           <div style={{ flex: 1 }} />
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: "0.6rem", color: "#a0aec0", fontWeight: "600" }}>本日</div>
