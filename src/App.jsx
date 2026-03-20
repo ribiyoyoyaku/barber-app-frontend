@@ -78,7 +78,7 @@ function LoginScreen({ onLogin }) {
     <div style={{ minHeight: "100vh", background: "#f4f7fb", display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
       <div style={{ background: "#fff", borderRadius: "16px", padding: "2.5rem 2rem", width: "100%", maxWidth: "360px", boxShadow: "0 8px 32px rgba(80,100,140,0.12)", textAlign: "center" }}>
         <div style={{ fontSize: "2.5rem", marginBottom: "0.5rem" }}>✂</div>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", color: "#3d5a80", marginBottom: "0.3rem" }}>Feel専用理容管理システム</h1>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.4rem", color: "#3d5a80", marginBottom: "0.3rem" }}>理容管理システム</h1>
         <p style={{ color: "#8896aa", fontSize: "0.83rem", marginBottom: "2rem" }}>パスワードを入力してください</p>
         <input type="password" style={{ ...inp, textAlign: "center", fontSize: "1.1rem", letterSpacing: "0.15em", marginBottom: "1rem" }}
           placeholder="••••••••" value={password} onChange={e => setPassword(e.target.value)}
@@ -436,57 +436,66 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
         return (
           <div style={{ borderRadius: "12px", border: "1px solid #e4eaf4", background: "#fff", overflow: "hidden" }}>
             {/* 曜日ヘッダー */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: "2px solid #e4eaf4", background: "#f8fafd" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", borderBottom: "2px solid #e4eaf4", background: "#f8fafd" }}>
               {WEEKDAYS.map((w, i) => (
                 <div key={w} style={{ textAlign: "center", padding: "0.45rem 0", fontSize: "0.72rem", fontWeight: "700", color: i === 0 ? "#e57373" : i === 6 ? "#64b5f6" : "#8896aa" }}>{w}</div>
               ))}
             </div>
             {/* 週ごとの行 */}
-            {weeks.map((week, wi) => (
-              <div key={wi} style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", borderBottom: wi < weeks.length - 1 ? "1px solid #f0f4f8" : "none" }}>
+            {weeks.map((week, wi) => {
+              // この週の最大予約件数を計算して行の高さを揃える
+              const maxBks = Math.max(...week.map(d => bookingsOn(fmt(d)).length), 0);
+              const maxShow = 2;
+              // 日付(20px) + チップ1件(18px)×表示数 + 余白
+              const rowH = Math.max(28 + Math.min(maxBks, maxShow) * 19 + (maxBks > maxShow ? 14 : 0), 72);
+              return (
+              <div key={wi} style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", borderBottom: wi < weeks.length - 1 ? "1px solid #f0f4f8" : "none", gridAutoRows: `${rowH}px` }}>
                 {week.map((d, di) => {
                   const isCurrentMonth = d.getMonth() === month;
                   const isToday = fmt(d) === fmt(today);
                   const dayBks = bookingsOn(fmt(d));
+                  const shown = dayBks.slice(0, maxShow);
+                  const hiddenCount = dayBks.length - maxShow;
                   return (
                     <div key={fmt(d)}
                       onClick={() => { setCurrentDate(d); setView("day"); }}
                       style={{
-                        minHeight: "72px", padding: "4px", cursor: "pointer",
+                        height: `${rowH}px`, padding: "3px", cursor: "pointer",
                         borderLeft: di > 0 ? "1px solid #f0f4f8" : "none",
                         background: isToday ? "#eef5ff" : !isCurrentMonth ? "#fafbfd" : "#fff",
-                        position: "relative",
+                        overflow: "hidden", boxSizing: "border-box",
                       }}>
                       {/* 日付 */}
                       <div style={{
-                        fontSize: "0.78rem", fontWeight: isToday ? "700" : "400",
+                        fontSize: "0.75rem", fontWeight: isToday ? "700" : "400",
                         color: isToday ? "#fff" : !isCurrentMonth ? "#c8d4e3" : di === 0 ? "#e57373" : di === 6 ? "#64b5f6" : "#3d5a80",
-                        width: "22px", height: "22px", borderRadius: "50%",
+                        width: "20px", height: "20px", borderRadius: "50%",
                         background: isToday ? "#4a8fd4" : "none",
                         display: "flex", alignItems: "center", justifyContent: "center",
-                        marginBottom: "2px",
+                        marginBottom: "2px", flexShrink: 0,
                       }}>{d.getDate()}</div>
-                      {/* 予約チップ（最大3件表示） */}
-                      {dayBks.slice(0, 3).map(b => {
+                      {/* 予約チップ */}
+                      {shown.map(b => {
                         const sv = services.find(s => s.id === b.serviceId);
                         const bg = sv?.color || "#e8f0fe";
                         return (
                           <div key={b.id}
                             onClick={e => { e.stopPropagation(); setModal({ booking: b }); }}
-                            style={{ background: bg, borderRadius: "3px", padding: "1px 4px", fontSize: "0.62rem", color: "#2d3748", fontWeight: "600", marginBottom: "1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer" }}>
+                            style={{ background: bg, borderRadius: "3px", padding: "1px 3px", fontSize: "0.58rem", color: "#2d3748", fontWeight: "600", marginBottom: "1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer", lineHeight: "1.4" }}>
                             {b.time} {b.customerName || "—"}
                           </div>
                         );
                       })}
-                      {/* 4件以上は「+n件」 */}
-                      {dayBks.length > 3 && (
-                        <div style={{ fontSize: "0.6rem", color: "#6b9fd4", fontWeight: "600", paddingLeft: "2px" }}>+{dayBks.length - 3}件</div>
+                      {/* 残り件数 */}
+                      {hiddenCount > 0 && (
+                        <div style={{ fontSize: "0.58rem", color: "#6b9fd4", fontWeight: "700", paddingLeft: "1px" }}>+{hiddenCount}件</div>
                       )}
                     </div>
                   );
                 })}
               </div>
-            ))}
+              );
+            })}
           </div>
         );
       })()}
@@ -1116,7 +1125,7 @@ export default function App() {
       <div style={{ minHeight: "100vh", background: "#f4f7fb", paddingBottom: "70px" }}>
         {/* Header */}
         <header style={{ background: "#fff", borderBottom: "1px solid #e4eaf4", padding: "0 1rem", display: "flex", alignItems: "center", height: "52px", gap: "0.75rem", boxShadow: "0 1px 6px rgba(80,100,140,0.07)", position: "sticky", top: 0, zIndex: 100 }}>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "#3d5a80", fontWeight: "700", whiteSpace: "nowrap" }}>✂ Feel専用理容管理</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", color: "#3d5a80", fontWeight: "700", whiteSpace: "nowrap" }}>✂ 理容管理</div>
           <div style={{ flex: 1 }} />
           <div style={{ textAlign: "right" }}>
             <div style={{ fontSize: "0.6rem", color: "#a0aec0", fontWeight: "600" }}>本日</div>
