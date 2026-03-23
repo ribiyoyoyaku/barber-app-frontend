@@ -508,13 +508,13 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
           {/* スクロールコンテナ（ヘッダーと本体を一緒にスクロール） */}
           <div style={{ overflowX: "auto" }}>
           {/* ヘッダー行（曜日・日付） */}
-          <div style={{ display: "flex", borderBottom: "2px solid #e4eaf4", background: "#f8fafd", minWidth: "700px" }}>
+          <div style={{ display: "flex", borderBottom: "2px solid #e4eaf4", background: "#f8fafd", minWidth: "980px" }}>
             <div style={{ width: "44px", flexShrink: 0 }} />
             {days.map(d => {
               const isToday = fmt(d) === fmt(today);
               return (
                 <div key={fmt(d)} onClick={() => { setCurrentDate(d); setView("day"); }}
-                  style={{ flex: 1, textAlign: "center", padding: "0.5rem 0.2rem", borderLeft: "1px solid #e4eaf4", cursor: "pointer", background: isToday ? "#eef5ff" : "#f8fafd", minWidth: "80px" }}>
+                  style={{ flex: 1, textAlign: "center", padding: "0.5rem 0.2rem", borderLeft: "1px solid #e4eaf4", cursor: "pointer", background: isToday ? "#eef5ff" : "#f8fafd", minWidth: "140px" }}>
                   <div style={{ fontSize: "0.62rem", color: "#8896aa", fontWeight: "600" }}>{WEEKDAYS[d.getDay()]}</div>
                   <div style={{ fontSize: "1rem", fontFamily: "var(--font-display)", color: isToday ? "#4a8fd4" : "#3d5a80", fontWeight: isToday ? "700" : "400" }}>{d.getDate()}</div>
                   <div style={{ fontSize: "0.6rem", color: "#a0aec0" }}>{bookingsOn(fmt(d)).length}件</div>
@@ -523,7 +523,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
             })}
           </div>
           {/* 時間軸本体 */}
-          <div style={{ display: "flex", minWidth: "700px" }}>
+          <div style={{ display: "flex", minWidth: "980px" }}>
             {/* 時間ラベル列 */}
             <div style={{ width: "44px", flexShrink: 0, position: "relative", height: `${TOTAL_HOURS * PX_PER_HOUR}px`, background: "#fafbfe" }}>
               {hourLabels.map(h => (
@@ -552,7 +552,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
                 setModal({ booking: null, prefill: { date: fmt(d), time: timeStr, slot: 0 } });
               };
               return (
-                <div key={fmt(d)} style={{ flex: 1, position: "relative", height: `${totalH}px`, borderLeft: "1px solid #e4eaf4", cursor: "crosshair", background: isToday ? "#fafcff" : "#fff", minWidth: "80px" }}
+                <div key={fmt(d)} style={{ flex: 1, position: "relative", height: `${totalH}px`, borderLeft: "1px solid #e4eaf4", cursor: "crosshair", background: isToday ? "#fafcff" : "#fff", minWidth: "140px" }}
                   onClick={handleColClick}>
                   {/* グリッド線 */}
                   {hourLabels.map(h => (
@@ -634,7 +634,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
             </div>
             {/* スタッフごとの列 */}
             {staff.map(s => (
-              <div key={s.id} style={{ flex: 1, minWidth: "80px" }}>
+              <div key={s.id} style={{ flex: 1, minWidth: "140px" }}>
                 <DayViewColumn staffMember={s} />
               </div>
             ))}
