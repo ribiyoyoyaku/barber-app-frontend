@@ -356,12 +356,12 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
                 top: `${top + 1}px`,
                 left: hasPair && isSlot1 ? "50%" : "1px",
                 width: hasPair ? (isSlot1 ? "calc(50% - 2px)" : "calc(50% - 1px)") : "calc(100% - 2px)",
-                height: `${height}px`,
+                minHeight: `${height}px`,
                 background: bg,
                 borderRadius: "5px",
                 padding: "2px 5px",
                 cursor: "pointer",
-                overflow: "hidden",
+                overflow: "visible",
                 boxShadow: "0 1px 4px rgba(80,100,140,0.12)",
                 border: `1px solid ${bg}`,
                 zIndex: 2,
@@ -424,82 +424,72 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
         const month = currentDate.getMonth();
         const firstDay = new Date(year, month, 1);
         const lastDay = new Date(year, month + 1, 0);
-        // カレンダー表示用の日付配列（前月・次月の端数含む）
-        const startDow = firstDay.getDay(); // 0=日
+        const startDow = firstDay.getDay();
         const totalCells = Math.ceil((startDow + lastDay.getDate()) / 7) * 7;
-        const cells = Array.from({ length: totalCells }, (_, i) => {
-          const d = new Date(year, month, 1 - startDow + i);
-          return d;
-        });
+        const cells = Array.from({ length: totalCells }, (_, i) => new Date(year, month, 1 - startDow + i));
         const weeks = [];
         for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-
+        const maxShow = 2;
         return (
           <div style={{ borderRadius: "12px", border: "1px solid #e4eaf4", background: "#fff", overflowX: "auto" }}>
-          <div style={{ minWidth: "560px" }}>
-            {/* 曜日ヘッダー */}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", borderBottom: "2px solid #e4eaf4", background: "#f8fafd" }}>
-              {WEEKDAYS.map((w, i) => (
-                <div key={w} style={{ textAlign: "center", padding: "0.45rem 0", fontSize: "0.72rem", fontWeight: "700", color: i === 0 ? "#e57373" : i === 6 ? "#64b5f6" : "#8896aa" }}>{w}</div>
-              ))}
-            </div>
-            {/* 週ごとの行 */}
-            {weeks.map((week, wi) => {
-              // この週の最大予約件数を計算して行の高さを揃える
-              const maxBks = Math.max(...week.map(d => bookingsOn(fmt(d)).length), 0);
-              const maxShow = 2;
-              // 日付(20px) + チップ1件(18px)×表示数 + 余白
-              const rowH = Math.max(28 + Math.min(maxBks, maxShow) * 19 + (maxBks > maxShow ? 14 : 0), 72);
-              return (
-              <div key={wi} style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", borderBottom: wi < weeks.length - 1 ? "1px solid #f0f4f8" : "none", gridAutoRows: `${rowH}px` }}>
-                {week.map((d, di) => {
-                  const isCurrentMonth = d.getMonth() === month;
-                  const isToday = fmt(d) === fmt(today);
-                  const dayBks = bookingsOn(fmt(d));
-                  const shown = dayBks.slice(0, maxShow);
-                  const hiddenCount = dayBks.length - maxShow;
-                  return (
-                    <div key={fmt(d)}
-                      onClick={() => { setCurrentDate(d); setView("day"); }}
-                      style={{
-                        height: `${rowH}px`, padding: "3px", cursor: "pointer",
-                        borderLeft: di > 0 ? "1px solid #f0f4f8" : "none",
-                        background: isToday ? "#eef5ff" : !isCurrentMonth ? "#fafbfd" : "#fff",
-                        overflow: "hidden", boxSizing: "border-box",
-                      }}>
-                      {/* 日付 */}
-                      <div style={{
-                        fontSize: "0.75rem", fontWeight: isToday ? "700" : "400",
-                        color: isToday ? "#fff" : !isCurrentMonth ? "#c8d4e3" : di === 0 ? "#e57373" : di === 6 ? "#64b5f6" : "#3d5a80",
-                        width: "20px", height: "20px", borderRadius: "50%",
-                        background: isToday ? "#4a8fd4" : "none",
-                        display: "flex", alignItems: "center", justifyContent: "center",
-                        marginBottom: "2px", flexShrink: 0,
-                      }}>{d.getDate()}</div>
-                      {/* 予約チップ */}
-                      {shown.map(b => {
-                        const sv = services.find(s => s.id === b.serviceId);
-                        const bg = sv?.color || "#e8f0fe";
-                        return (
-                          <div key={b.id}
-                            onClick={e => { e.stopPropagation(); setModal({ booking: b }); }}
-                            style={{ background: bg, borderRadius: "3px", padding: "1px 3px", fontSize: "0.58rem", color: "#2d3748", fontWeight: "600", marginBottom: "1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer", lineHeight: "1.4" }}>
-                            {b.time} {b.customerName || "—"}
-                          </div>
-                        );
-                      })}
-                      {/* 残り件数 */}
-                      {hiddenCount > 0 && (
-                        <div style={{ fontSize: "0.58rem", color: "#6b9fd4", fontWeight: "700", paddingLeft: "1px" }}>+{hiddenCount}件</div>
-                      )}
-                    </div>
-                  );
-                })}
+            <div style={{ minWidth: "560px" }}>
+              {/* 曜日ヘッダー */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", borderBottom: "2px solid #e4eaf4", background: "#f8fafd" }}>
+                {WEEKDAYS.map((w, i) => (
+                  <div key={w} style={{ textAlign: "center", padding: "0.45rem 0", fontSize: "0.72rem", fontWeight: "700", color: i === 0 ? "#e57373" : i === 6 ? "#64b5f6" : "#8896aa" }}>{w}</div>
+                ))}
               </div>
-              );
-            })}
+              {/* 週ごとの行 */}
+              {weeks.map((week, wi) => {
+                const maxBks = Math.max(...week.map(d => bookingsOn(fmt(d)).length), 0);
+                const rowH = Math.max(28 + Math.min(maxBks, maxShow) * 19 + (maxBks > maxShow ? 14 : 0), 72);
+                return (
+                  <div key={wi} style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", borderBottom: wi < weeks.length - 1 ? "1px solid #f0f4f8" : "none" }}>
+                    {week.map((d, di) => {
+                      const isCurrentMonth = d.getMonth() === month;
+                      const isToday = fmt(d) === fmt(today);
+                      const dayBks = bookingsOn(fmt(d));
+                      const shown = dayBks.slice(0, maxShow);
+                      const hiddenCount = dayBks.length - maxShow;
+                      return (
+                        <div key={fmt(d)}
+                          onClick={() => { setCurrentDate(d); setView("day"); }}
+                          style={{
+                            height: `${rowH}px`, padding: "3px", cursor: "pointer",
+                            borderLeft: di > 0 ? "1px solid #f0f4f8" : "none",
+                            background: isToday ? "#eef5ff" : !isCurrentMonth ? "#fafbfd" : "#fff",
+                            overflow: "hidden", boxSizing: "border-box",
+                          }}>
+                          <div style={{
+                            fontSize: "0.75rem", fontWeight: isToday ? "700" : "400",
+                            color: isToday ? "#fff" : !isCurrentMonth ? "#c8d4e3" : di === 0 ? "#e57373" : di === 6 ? "#64b5f6" : "#3d5a80",
+                            width: "20px", height: "20px", borderRadius: "50%",
+                            background: isToday ? "#4a8fd4" : "none",
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            marginBottom: "2px",
+                          }}>{d.getDate()}</div>
+                          {shown.map(b => {
+                            const sv = services.find(s => s.id === b.serviceId);
+                            const bg = sv?.color || "#e8f0fe";
+                            return (
+                              <div key={b.id}
+                                onClick={e => { e.stopPropagation(); setModal({ booking: b }); }}
+                                style={{ background: bg, borderRadius: "3px", padding: "1px 3px", fontSize: "0.58rem", color: "#2d3748", fontWeight: "600", marginBottom: "1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", cursor: "pointer", lineHeight: "1.4" }}>
+                                {b.time} {b.customerName || "—"}
+                              </div>
+                            );
+                          })}
+                          {hiddenCount > 0 && (
+                            <div style={{ fontSize: "0.58rem", color: "#6b9fd4", fontWeight: "700" }}>+{hiddenCount}件</div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-          </div>{/* /minWidth wrapper */}
         );
       })()}
 
@@ -579,12 +569,12 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
                           top: `${top + 1}px`,
                           left: hasPairW && isSlot1 ? "50%" : "1px",
                           width: hasPairW ? (isSlot1 ? "calc(50% - 2px)" : "calc(50% - 1px)") : "calc(100% - 2px)",
-                          height: `${height}px`,
+                          minHeight: `${height}px`,
                           background: bg,
                           borderRadius: "4px",
                           padding: "1px 3px",
                           cursor: "pointer",
-                          overflow: "hidden",
+                          overflow: "visible",
                           boxShadow: "0 1px 3px rgba(80,100,140,0.1)",
                           border: `1px solid ${bg}`,
                           zIndex: 2,
