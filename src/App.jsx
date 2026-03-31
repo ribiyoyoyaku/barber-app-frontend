@@ -32,12 +32,11 @@ const TIME_SLOTS = Array.from({ length: 25 }, (_, i) => {
 });
 const HOURS = Array.from({ length: 13 }, (_, i) => `${String(i + 9).padStart(2, "0")}:00`);
 function genId() { return "id_" + Math.random().toString(36).slice(2, 9); }
-// 予約チップの枠線色（IDから決定論的に割り当て）
-const BORDER_COLORS = ["#e05252","#d4891a","#2980b9","#27ae60","#8e44ad","#16a085","#c0392b","#1a6bb5","#b7950b","#6c3483"];
-function chipBorder(id) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) hash = (hash * 31 + id.charCodeAt(i)) & 0xffffffff;
-  return BORDER_COLORS[Math.abs(hash) % BORDER_COLORS.length];
+// 背景色を暗くして枠線色を生成
+function chipBorder(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  const d = (v) => Math.max(0, v - 55).toString(16).padStart(2,"0");
+  return "#" + d(r) + d(g) + d(b);
 }
 
 const inp = {
@@ -404,7 +403,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
                 cursor: "pointer",
                 overflow: "visible",
                 boxShadow: "0 1px 4px rgba(80,100,140,0.12)",
-                border: `2px solid ${chipBorder(b.id)}`,
+                border: "2px solid #ffffff",
                 zIndex: 2,
               }}>
               <div style={{ fontWeight: "700", fontSize: "0.7rem", color: "#2d3748", whiteSpace: "normal", wordBreak: "break-all", lineHeight: "1.3" }}>
@@ -617,7 +616,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
                           cursor: "pointer",
                           overflow: "visible",
                           boxShadow: "0 1px 3px rgba(80,100,140,0.1)",
-                          border: `2px solid ${chipBorder(b.id)}`,
+                          border: "2px solid #ffffff",
                           zIndex: 2,
                         }}>
                         <div style={{ fontWeight: "700", fontSize: "0.62rem", color: "#2d3748", whiteSpace: "normal", wordBreak: "break-all", lineHeight: "1.3" }}>
