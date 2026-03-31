@@ -600,9 +600,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
                     const height = Math.max((duration / 60) * PX_PER_HOUR - 2, 16);
                     const bg = sv?.color || "#e8f0fe";
                     const isSlot1 = (b.slot ?? 0) === 1;
-                    // 同じスタッフ・同じ時間帯に別のslotの予約があるか確認
-                    const sameStaffBookings = dayBks.filter(x => x.staffId === b.staffId);
-                    const hasPairW = sameStaffBookings.some(x => x.id !== b.id && x.time === b.time);
+                    const hasPairW = dayBks.some(x => x.id !== b.id && x.time === b.time && x.staffId === b.staffId);
                     return (
                       <div key={b.id}
                         onClick={e => { e.stopPropagation(); setModal({ booking: b }); }}
@@ -1262,5 +1260,6 @@ export default function App() {
     </>
   );
 }
+
   );
 }
