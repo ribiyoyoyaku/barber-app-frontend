@@ -23,15 +23,7 @@ async function apiFetch(path, options = {}) {
 }
 
 const today = new Date();
-
-// ✅ 修正箇所: toISOString()はUTC基準のため日本時間(UTC+9)でずれる → ローカル時間ベースに変更
-const fmt = (d) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
-};
-
+const fmt = (d) => { const y = d.getFullYear(); const m = String(d.getMonth()+1).padStart(2,"0"); const day = String(d.getDate()).padStart(2,"0"); return `${y}-${m}-${day}`; };
 const WEEKDAYS = ["日", "月", "火", "水", "木", "金", "土"];
 const TIME_SLOTS = Array.from({ length: 25 }, (_, i) => {
   const h = Math.floor(i / 2) + 9;
@@ -234,8 +226,9 @@ function BookingChip({ booking, services, onClick }) {
 // ============================================================
 // CALENDAR TAB
 // ============================================================
+// 1時間 = PX_PER_HOUR px
 const PX_PER_HOUR = 60;
-const MIN_PER_PX = 60 / PX_PER_HOUR;
+const MIN_PER_PX = 60 / PX_PER_HOUR; // 1px = 何分か
 const START_HOUR = 9;
 const END_HOUR = 21;
 const TOTAL_HOURS = END_HOUR - START_HOUR;
@@ -258,9 +251,11 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
   const saveBooking = async (b) => {
     setSaving(true);
     try {
+      // 新規予約の場合、枠を自動割り当て
       let finalBooking = { ...b };
       const isNew = !bookings.find(x => x.id === b.id);
       if (isNew) {
+        // 時間が重なる予約を検出（開始〜終了が被るもの）
         const toMinutes = (timeStr) => {
           const [h, m] = timeStr.split(":").map(Number);
           return h * 60 + m;
@@ -277,6 +272,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
           const xStart = toMinutes(x.time);
           const xSv = services.find(s => s.id === x.serviceId);
           const xEnd = xStart + (xSv?.duration || 60);
+          // 時間が少しでも重なれば対象
           return newStart < xEnd && newEnd > xStart;
         });
         const slot0Taken = same.some(x => (x.slot ?? 0) === 0);
@@ -304,16 +300,19 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
     } catch (e) { alert(e.message); }
   };
 
+  // 時間軸の目盛りラベル
   const hourLabels = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => i + START_HOUR);
 
+  // 日ビュー：スタッフ列ごとに予約チップを絶対配置
   const DayViewColumn = ({ staffMember }) => {
     const dayBookings = bookingsOn(fmt(currentDate)).filter(b => b.staffId === staffMember.id);
     const totalH = TOTAL_HOURS * PX_PER_HOUR;
 
     const handleColumnClick = (e) => {
+      // クリック位置から時間を計算
       const rect = e.currentTarget.getBoundingClientRect();
       const y = e.clientY - rect.top;
-      const minutes = Math.round((y / PX_PER_HOUR) * 60 / 30) * 30;
+      const minutes = Math.round((y / PX_PER_HOUR) * 60 / 30) * 30; // 30分単位
       const totalMinutes = START_HOUR * 60 + minutes;
       const h = Math.floor(totalMinutes / 60);
       const m = totalMinutes % 60;
@@ -325,18 +324,21 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
     return (
       <div style={{ position: "relative", height: `${totalH}px`, borderLeft: "1px solid #e4eaf4", cursor: "crosshair", background: "#fff" }}
         onClick={handleColumnClick}>
+        {/* 水平グリッド線 */}
         {hourLabels.map(h => (
           <div key={h} style={{
             position: "absolute", top: `${(h - START_HOUR) * PX_PER_HOUR}px`,
             left: 0, right: 0, borderTop: "1px solid #f0f4f8", pointerEvents: "none",
           }} />
         ))}
+        {/* 30分線 */}
         {Array.from({ length: TOTAL_HOURS }, (_, i) => (
           <div key={i} style={{
             position: "absolute", top: `${i * PX_PER_HOUR + PX_PER_HOUR / 2}px`,
             left: 0, right: 0, borderTop: "1px dashed #f5f7fb", pointerEvents: "none",
           }} />
         ))}
+        {/* 予約チップ */}
         {dayBookings.map(b => {
           const sv = services.find(s => s.id === b.serviceId);
           const duration = sv?.duration || 60;
@@ -344,6 +346,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
           const height = Math.max((duration / 60) * PX_PER_HOUR - 2, 20);
           const bg = sv?.color || "#e8f0fe";
           const isSlot1 = (b.slot ?? 0) === 1;
+          // 同じスタッフ・同じ時間帯に別のslotの予約があるか確認
           const hasPair = dayBookings.some(x => x.id !== b.id && x.time === b.time);
           return (
             <div key={b.id}
@@ -430,11 +433,13 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
         return (
           <div style={{ borderRadius: "12px", border: "1px solid #e4eaf4", background: "#fff", overflowX: "auto" }}>
             <div style={{ minWidth: "560px" }}>
+              {/* 曜日ヘッダー */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", borderBottom: "2px solid #e4eaf4", background: "#f8fafd" }}>
                 {WEEKDAYS.map((w, i) => (
                   <div key={w} style={{ textAlign: "center", padding: "0.45rem 0", fontSize: "0.72rem", fontWeight: "700", color: i === 0 ? "#e57373" : i === 6 ? "#64b5f6" : "#8896aa" }}>{w}</div>
                 ))}
               </div>
+              {/* 週ごとの行 */}
               {weeks.map((week, wi) => {
                 const maxBks = Math.max(...week.map(d => bookingsOn(fmt(d)).length), 0);
                 const rowH = Math.max(28 + Math.min(maxBks, maxShow) * 19 + (maxBks > maxShow ? 14 : 0), 72);
@@ -488,10 +493,12 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
         );
       })()}
 
-      {/* Week View */}
+      {/* Week View（時間軸・メニュー長さで高さが変わる） */}
       {view === "week" && (
         <div style={{ borderRadius: "12px", border: "1px solid #e4eaf4", background: "#fff", overflow: "hidden" }}>
+          {/* スクロールコンテナ（ヘッダーと本体を一緒にスクロール） */}
           <div style={{ overflowX: "auto" }}>
+          {/* ヘッダー行（曜日・日付） */}
           <div style={{ display: "flex", borderBottom: "2px solid #e4eaf4", background: "#f8fafd", minWidth: "770px" }}>
             <div style={{ width: "44px", flexShrink: 0 }} />
             {days.map(d => {
@@ -506,7 +513,9 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
               );
             })}
           </div>
+          {/* 時間軸本体 */}
           <div style={{ display: "flex", minWidth: "770px" }}>
+            {/* 時間ラベル列 */}
             <div style={{ width: "44px", flexShrink: 0, position: "relative", height: `${TOTAL_HOURS * PX_PER_HOUR}px`, background: "#fafbfe" }}>
               {hourLabels.map(h => (
                 <div key={h} style={{
@@ -517,6 +526,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
                 </div>
               ))}
             </div>
+            {/* 曜日ごとの列 */}
             {days.map(d => {
               const isToday = fmt(d) === fmt(today);
               const dayBks = bookingsOn(fmt(d));
@@ -535,12 +545,14 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
               return (
                 <div key={fmt(d)} style={{ flex: 1, position: "relative", height: `${totalH}px`, borderLeft: "1px solid #e4eaf4", cursor: "crosshair", background: isToday ? "#fafcff" : "#fff", minWidth: "110px" }}
                   onClick={handleColClick}>
+                  {/* グリッド線 */}
                   {hourLabels.map(h => (
                     <div key={h} style={{ position: "absolute", top: `${(h - START_HOUR) * PX_PER_HOUR}px`, left: 0, right: 0, borderTop: "1px solid #f0f4f8", pointerEvents: "none" }} />
                   ))}
                   {Array.from({ length: TOTAL_HOURS }, (_, i) => (
                     <div key={i} style={{ position: "absolute", top: `${i * PX_PER_HOUR + PX_PER_HOUR / 2}px`, left: 0, right: 0, borderTop: "1px dashed #f5f7fb", pointerEvents: "none" }} />
                   ))}
+                  {/* 予約チップ */}
                   {dayBks.map(b => {
                     const sv = services.find(s => s.id === b.serviceId);
                     const duration = sv?.duration || 60;
@@ -582,13 +594,14 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
               );
             })}
           </div>
-          </div>
+          </div>{/* /overflowX scroll container */}
         </div>
       )}
 
-      {/* Day View */}
+      {/* Day View（時間軸・メニュー長さで高さが変わる） */}
       {view === "day" && (
         <div style={{ overflowX: "auto", borderRadius: "12px", border: "1px solid #e4eaf4", background: "#fff" }}>
+          {/* ヘッダー行（スタッフ名） */}
           <div style={{ display: "flex", borderBottom: "2px solid #e4eaf4", background: "#f8fafd", position: "sticky", top: 0, zIndex: 10 }}>
             <div style={{ width: "44px", flexShrink: 0 }} />
             {staff.map(s => (
@@ -598,7 +611,9 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
               </div>
             ))}
           </div>
+          {/* 時間軸グリッド本体 */}
           <div style={{ display: "flex" }}>
+            {/* 時間ラベル列 */}
             <div style={{ width: "44px", flexShrink: 0, position: "relative", height: `${TOTAL_HOURS * PX_PER_HOUR}px`, background: "#fafbfe" }}>
               {hourLabels.map(h => (
                 <div key={h} style={{
@@ -609,6 +624,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
                 </div>
               ))}
             </div>
+            {/* スタッフごとの列 */}
             {staff.map(s => (
               <div key={s.id} style={{ flex: 1, minWidth: "110px" }}>
                 <DayViewColumn staffMember={s} />
@@ -680,6 +696,7 @@ function CustomersTab({ customers, setCustomers, bookings, services }) {
     ? bookings.filter(b => b.customerId === selected.id).sort((a, b) => b.date.localeCompare(a.date))
     : [];
 
+  // Customer detail modal for mobile
   const CustomerDetail = () => (
     <Modal title={selected?.name || ""} onClose={() => setShowDetail(false)}>
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
@@ -762,10 +779,38 @@ function CustomersTab({ customers, setCustomers, bookings, services }) {
 // ============================================================
 // SALES TAB
 // ============================================================
-function SalesTab({ bookings, services, staff }) {
+function SalesTab({ bookings, services, staff, customers }) {
   const [selectedMonth, setSelectedMonth] = useState(
     `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`
   );
+
+  // CSVダウンロード
+  const downloadCSV = (rows, filename) => {
+    const bom = "﻿"; // Excelで文字化けしないようBOMを付ける
+    const csv = bom + rows.map(r => r.map(c => `"${String(c ?? "").replace(/"/g, '""')}"`).join(",")).join("
+");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadBookings = () => {
+    const header = ["日付", "時間", "顧客名", "担当スタッフ", "メニュー", "料金", "ステータス", "メモ"];
+    const rows = bookings.map(b => {
+      const sv = services.find(s => s.id === b.serviceId);
+      const st = staff.find(s => s.id === b.staffId);
+      return [b.date, b.time, b.customerName || "", st?.name || "", sv?.name || "", b.price, b.status, b.notes || ""];
+    });
+    downloadCSV([header, ...rows], `予約データ_${today.getFullYear()}${String(today.getMonth()+1).padStart(2,"0")}${String(today.getDate()).padStart(2,"0")}.csv`);
+  };
+
+  const downloadCustomers = () => {
+    const header = ["氏名", "電話番号", "メールアドレス", "来店回数", "最終来店", "累計金額", "メモ"];
+    const rows = (customers || []).map(c => [c.name, c.phone || "", c.email || "", c.visits || 0, c.lastVisit || "", c.totalSpent || 0, c.notes || ""]);
+    downloadCSV([header, ...rows], `顧客データ_${today.getFullYear()}${String(today.getMonth()+1).padStart(2,"0")}${String(today.getDate()).padStart(2,"0")}.csv`);
+  };
   const active = bookings.filter(b => b.status !== "cancelled");
   const monthly = {};
   active.forEach(b => { const m = b.date.slice(0, 7); monthly[m] = (monthly[m] || 0) + b.price; });
@@ -798,6 +843,19 @@ function SalesTab({ bookings, services, staff }) {
             <div style={{ fontFamily: "var(--font-display)", fontSize: "1.3rem", color: c, marginTop: "0.2rem" }}>{v}</div>
           </div>
         ))}
+      </div>
+      {/* バックアップCSVダウンロード */}
+      <div style={{ background: "#fff", border: "1.5px solid #e4eaf4", borderRadius: "12px", padding: "1rem", marginBottom: "1rem" }}>
+        <div style={{ color: "#8896aa", fontSize: "0.7rem", fontWeight: "600", marginBottom: "0.6rem" }}>💾 データのバックアップ</div>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <button onClick={downloadBookings} style={{ ...mkBtn("primary"), fontSize: "0.85rem", padding: "0.5rem 1rem" }}>
+            📅 予約データをCSVで保存
+          </button>
+          <button onClick={downloadCustomers} style={{ ...mkBtn("ghost"), fontSize: "0.85rem", padding: "0.5rem 1rem" }}>
+            👤 顧客データをCSVで保存
+          </button>
+        </div>
+        <div style={{ color: "#a0aec0", fontSize: "0.72rem", marginTop: "0.5rem" }}>月1回ダウンロードして保存しておくと安心です</div>
       </div>
       <div style={{ marginBottom: "1rem" }}>
         <input type="month" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)} style={{ ...inp, width: "auto" }} />
@@ -1081,6 +1139,8 @@ export default function App() {
 
   if (!loggedIn) return <LoginScreen onLogin={() => setLoggedIn(true)} />;
 
+  const currentTab = TABS.find(t => t.id === tab);
+
   return (
     <>
       <style>{`
@@ -1131,7 +1191,7 @@ export default function App() {
             <>
               {tab === "calendar" && <CalendarTab bookings={bookings} setBookings={setBookings} customers={customers} services={services} staff={staff} />}
               {tab === "customers" && <CustomersTab customers={customers} setCustomers={setCustomers} bookings={bookings} services={services} />}
-              {tab === "sales" && <SalesTab bookings={bookings} services={services} staff={staff} />}
+              {tab === "sales" && <SalesTab bookings={bookings} services={services} staff={staff} customers={customers} />}
               {tab === "menus" && <MenuManagementTab services={services} setServices={setServices} />}
               {tab === "staffs" && <StaffManagementTab staff={staff} setStaff={setStaff} />}
             </>
