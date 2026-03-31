@@ -593,43 +593,64 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
                     <div key={i} style={{ position: "absolute", top: `${i * PX_PER_HOUR + PX_PER_HOUR / 2}px`, left: 0, right: 0, borderTop: "1px dashed #f5f7fb", pointerEvents: "none" }} />
                   ))}
                   {/* 予約チップ */}
-                  {dayBks.map(b => {
-                    const sv = services.find(s => s.id === b.serviceId);
-                    const duration = sv?.duration || 60;
-                    const top = timeToY(b.time);
-                    const height = Math.max((duration / 60) * PX_PER_HOUR - 2, 16);
-                    const bg = sv?.color || "#e8f0fe";
-                    const isSlot1 = (b.slot ?? 0) === 1;
-                    const hasPairW = dayBks.some(x => x.id !== b.id && x.time === b.time && x.staffId === b.staffId);
-                    return (
-                      <div key={b.id}
-                        onClick={e => { e.stopPropagation(); setModal({ booking: b }); }}
-                        style={{
-                          position: "absolute",
-                          top: `${top + 1}px`,
-                          left: hasPairW && isSlot1 ? "50%" : "1px",
-                          width: hasPairW ? (isSlot1 ? "calc(50% - 2px)" : "calc(50% - 1px)") : "calc(100% - 2px)",
-                          minHeight: `${height}px`,
-                          background: bg,
-                          borderRadius: "4px",
-                          padding: "1px 3px",
-                          cursor: "pointer",
-                          overflow: "visible",
-                          boxShadow: "0 1px 3px rgba(80,100,140,0.1)",
-                          border: "2px solid #b0bec8",
-                          zIndex: 2,
-                        }}>
-                        <div style={{ fontWeight: "700", fontSize: "0.62rem", color: "#2d3748", whiteSpace: "normal", wordBreak: "break-all", lineHeight: "1.3" }}>
-                          {b.customerName || "—"}
-                        </div>
-                        {height > 24 && (
-                          <div style={{ fontSize: "0.58rem", color: "#5a6a7e", whiteSpace: "normal", wordBreak: "break-all", lineHeight: "1.3" }}>
-                            {sv?.name}
+                  {(() => {
+                    // 時間とスタッフで予約をグループ化
+                    const timeGroups = {};
+                    dayBks.forEach(b => {
+                      const key = b.time;
+                      if (!timeGroups[key]) timeGroups[key] = [];
+                      timeGroups[key].push(b);
+                    });
+                    
+                    return Object.entries(timeGroups).map(([time, bookings]) => {
+                      // 同じ時間の予約をスタッフでソート
+                      const sortedBookings = bookings.sort((a, b) => {
+                        const staffA = staff.find(s => s.id === a.staffId);
+                        const staffB = staff.find(s => s.id === b.staffId);
+                        return (staffA?.sortOrder || 0) - (staffB?.sortOrder || 0);
+                      });
+                      
+                      return sortedBookings.map((b, index) => {
+                        const sv = services.find(s => s.id === b.serviceId);
+                        const duration = sv?.duration || 60;
+                        const top = timeToY(b.time);
+                        const height = Math.max((duration / 60) * PX_PER_HOUR - 2, 16);
+                        const bg = sv?.color || "#e8f0fe";
+                        const totalInSlot = sortedBookings.length;
+                        const width = totalInSlot > 1 ? `calc(${100 / totalInSlot}% - 2px)` : "calc(100% - 2px)";
+                        const left = totalInSlot > 1 ? `${(index * 100 / totalInSlot)}%` : "1px";
+                        
+                        return (
+                          <div key={b.id}
+                            onClick={e => { e.stopPropagation(); setModal({ booking: b }); }}
+                            style={{
+                              position: "absolute",
+                              top: `${top + 1}px`,
+                              left: left,
+                              width: width,
+                              minHeight: `${height}px`,
+                              background: bg,
+                              borderRadius: "4px",
+                              padding: "1px 3px",
+                              cursor: "pointer",
+                              overflow: "visible",
+                              boxShadow: "0 1px 3px rgba(80,100,140,0.1)",
+                              border: "2px solid #b0bec8",
+                              zIndex: 2,
+                            }}>
+                            <div style={{ fontWeight: "700", fontSize: "0.62rem", color: "#2d3748", whiteSpace: "normal", wordBreak: "break-all", lineHeight: "1.3" }}>
+                              {b.customerName || "—"}
+                            </div>
+                            {height > 24 && (
+                              <div style={{ fontSize: "0.58rem", color: "#5a6a7e", whiteSpace: "normal", wordBreak: "break-all", lineHeight: "1.3" }}>
+                                {sv?.name}
+                              </div>
+                            )}
                           </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                        );
+                      });
+                    });
+                  })()}
                 </div>
               );
             })}
@@ -1258,8 +1279,5 @@ export default function App() {
         </Modal>
       )}
     </>
-  );
-}
-
   );
 }
