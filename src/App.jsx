@@ -403,7 +403,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
                 cursor: "pointer",
                 overflow: "visible",
                 boxShadow: "0 1px 4px rgba(80,100,140,0.12)",
-                border: "2px solid #ffffff",
+                border: "2px solid #b0bec8",
                 zIndex: 2,
               }}>
               <div style={{ fontWeight: "700", fontSize: "0.7rem", color: "#2d3748", whiteSpace: "normal", wordBreak: "break-all", lineHeight: "1.3" }}>
@@ -616,7 +616,7 @@ function CalendarTab({ bookings, setBookings, customers, services, staff }) {
                           cursor: "pointer",
                           overflow: "visible",
                           boxShadow: "0 1px 3px rgba(80,100,140,0.1)",
-                          border: "2px solid #ffffff",
+                          border: "2px solid #b0bec8",
                           zIndex: 2,
                         }}>
                         <div style={{ fontWeight: "700", fontSize: "0.62rem", color: "#2d3748", whiteSpace: "normal", wordBreak: "break-all", lineHeight: "1.3" }}>
