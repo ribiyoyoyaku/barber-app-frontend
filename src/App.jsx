@@ -121,17 +121,29 @@ function BookingForm({ booking, customers, services, staff, onSave, onClose }) {
     status: "confirmed", price: services[0]?.price || 0, notes: "",
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [showCustomerList, setShowCustomerList] = useState(false);
 
   const handleService = (sid) => {
     const sv = services.find(s => s.id === sid);
     set("serviceId", sid);
     if (sv) set("price", sv.price);
   };
-  const handleCustomer = (cid) => {
-    const c = customers.find(x => x.id === cid);
-    set("customerId", cid);
-    set("customerName", c ? c.name : "");
+  const handleCustomer = (c) => {
+    set("customerId", c.id);
+    set("customerName", c.name);
+    setCustomerSearch(c.name);
+    setShowCustomerList(false);
   };
+  const clearCustomer = () => {
+    set("customerId", "");
+    set("customerName", "");
+    setCustomerSearch("");
+    setShowCustomerList(false);
+  };
+  const filteredCustomers = customers.filter(c =>
+    c.name.includes(customerSearch) || (c.phone || "").includes(customerSearch)
+  );
   const selectedSv = services.find(s => s.id === form.serviceId);
 
   return (
@@ -142,15 +154,37 @@ function BookingForm({ booking, customers, services, staff, onSave, onClose }) {
           {selectedSv.name}　{selectedSv.duration}分　¥{selectedSv.price.toLocaleString()}
         </div>
       )}
-      <div style={{ marginBottom: "1rem" }}>
+      <div style={{ marginBottom: "1rem", position: "relative" }}>
         <label style={lbl}>顧客</label>
-        <select style={inp} value={form.customerId} onChange={e => handleCustomer(e.target.value)}>
-          <option value="">-- 顧客を選択 --</option>
-          {customers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-        </select>
-        {!form.customerId && (
-          <input style={{ ...inp, marginTop: "0.4rem" }} placeholder="または氏名を直接入力"
-            value={form.customerName} onChange={e => set("customerName", e.target.value)} />
+        <div style={{ position: "relative" }}>
+          <input
+            style={{ ...inp, paddingRight: "2rem" }}
+            placeholder="🔍 名前・電話番号で検索…"
+            value={customerSearch}
+            onChange={e => { setCustomerSearch(e.target.value); set("customerId", ""); set("customerName", e.target.value); setShowCustomerList(true); }}
+            onFocus={() => setShowCustomerList(true)}
+          />
+          {customerSearch && (
+            <button onClick={clearCustomer} style={{ position: "absolute", right: "8px", top: "50%", transform: "translateY(-50%)", background: "none", border: "none", color: "#a0aec0", cursor: "pointer", fontSize: "1rem", padding: "0" }}>×</button>
+          )}
+        </div>
+        {showCustomerList && customerSearch && (
+          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #dde3ec", borderRadius: "8px", boxShadow: "0 4px 16px rgba(80,100,140,0.15)", zIndex: 50, maxHeight: "200px", overflowY: "auto", marginTop: "2px" }}>
+            {filteredCustomers.length === 0 ? (
+              <div style={{ padding: "0.75rem 1rem", color: "#a0aec0", fontSize: "0.83rem" }}>該当なし（このまま新規として登録できます）</div>
+            ) : (
+              filteredCustomers.map(c => (
+                <div key={c.id} onClick={() => handleCustomer(c)}
+                  style={{ padding: "0.6rem 1rem", cursor: "pointer", borderBottom: "1px solid #f0f4f8", fontSize: "0.88rem" }}
+                  onMouseEnter={e => e.currentTarget.style.background = "#f4f8ff"}
+                  onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+                  <span style={{ fontWeight: "600", color: "#2d3748" }}>{c.name}</span>
+                  {c.phone && <span style={{ color: "#8896aa", marginLeft: "0.5rem", fontSize: "0.78rem" }}>{c.phone}</span>}
+                  <span style={{ color: "#a0aec0", marginLeft: "0.5rem", fontSize: "0.75rem" }}>来店{c.visits}回</span>
+                </div>
+              ))
+            )}
+          </div>
         )}
       </div>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem", marginBottom: "1rem" }}>
