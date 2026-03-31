@@ -121,7 +121,7 @@ function BookingForm({ booking, customers, services, staff, onSave, onClose }) {
     status: "confirmed", price: services[0]?.price || 0, notes: "",
   });
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-  const [customerSearch, setCustomerSearch] = useState("");
+  const [customerSearch, setCustomerSearch] = useState(booking?.customerName || "");
   const [showCustomerList, setShowCustomerList] = useState(false);
 
   const handleService = (sid) => {
